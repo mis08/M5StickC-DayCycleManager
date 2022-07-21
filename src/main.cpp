@@ -2,18 +2,23 @@
 #include <WiFi.h>
 #include "time.h"
 
-const char* ssid = "****";
-const char* password = "*****";
+const char* ssid = "Buffalo-G-4220";
+const char* password = "fbksee77rv6n4";
 
 const char* ntpServer = "ntp.nict.jp";
-const long gmtoffset_sec = 0;
+const long gmtoffset_sec = 32400;
 const int daylightoffset_sec = 0;
 
+int OFFSET_H = 0;
+int OFFSET_M = 0;
+
 void printLocalTime();
+void printMyCycleTime(struct tm &timeinfo);
 
 void setup() {
   M5.begin();
   M5.Lcd.setRotation(3);
+  M5.lcd.setTextSize(2);
   M5.Lcd.printf("\nConnecting to %s", ssid);
   WiFi.begin(ssid, password);
   while(WiFi.status() != WL_CONNECTED){
@@ -30,7 +35,7 @@ void setup() {
 
 void loop() {
   delay(1000);
-  M5.Lcd.setCursor(0,25);
+  M5.Lcd.setCursor(0,64);
   printLocalTime();
 }
 
@@ -41,4 +46,16 @@ void printLocalTime(){
     return;
   }
   M5.Lcd.println(&timeinfo, "%A,%B %d \n%Y %H:%M:%S");
+  printMyCycleTime(timeinfo);
+}
+
+void printMyCycleTime(struct tm &timeinfo){
+  M5.update();
+  if(M5.BtnA.wasReleased()){
+    OFFSET_H = 6 - timeinfo.tm_hour;
+    OFFSET_M = 0 - timeinfo.tm_min;
+  }
+  timeinfo.tm_hour += OFFSET_H;
+  timeinfo.tm_min += OFFSET_M;
+  M5.Lcd.println(&timeinfo, "\nCycleTIme : %H:%M:%S");
 }
