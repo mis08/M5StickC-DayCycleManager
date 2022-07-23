@@ -9,17 +9,16 @@ const char* ntpServer = "ntp.nict.jp";
 const long gmtoffset_sec = 32400;
 const int daylightoffset_sec = 0;
 
-int OFFSET_H = 0;
-int OFFSET_M = 0;
+long OFFSET = 0;
 
 void printLocalTime();
 void printMyCycleTime(struct tm &timeinfo);
 
 void setup() {
   M5.begin();
+  M5.Axp.ScreenBreath(7);
   M5.Lcd.setRotation(3);
-  M5.lcd.setTextSize(2);
-  M5.Lcd.printf("\nConnecting to %s", ssid);
+  M5.Lcd.printf("Connecting to %s", ssid);
   WiFi.begin(ssid, password);
   while(WiFi.status() != WL_CONNECTED){
     delay(500);
@@ -30,32 +29,39 @@ void setup() {
   printLocalTime();
   WiFi.disconnect(true);
   WiFi.mode(WIFI_OFF);
+  setCpuFrequencyMhz(20);
   delay(20);
 }
 
 void loop() {
   delay(1000);
-  M5.Lcd.setCursor(0,64);
   printLocalTime();
 }
 
 void printLocalTime(){
+  M5.Lcd.setCursor(0,24);
+  M5.Lcd.setTextSize(2);
   struct tm timeinfo;
   if(!getLocalTime(&timeinfo)){
     M5.Lcd.println("Failed to obtain time");
     return;
   }
-  M5.Lcd.println(&timeinfo, "%A,%B %d \n%Y %H:%M:%S");
+  M5.Lcd.println(&timeinfo, "\nN: %H:%M:%S");
   printMyCycleTime(timeinfo);
 }
 
 void printMyCycleTime(struct tm &timeinfo){
   M5.update();
+  long current =  (timeinfo.tm_hour * 60) + timeinfo.tm_min;
   if(M5.BtnA.wasReleased()){
-    OFFSET_H = 6 - timeinfo.tm_hour;
-    OFFSET_M = 0 - timeinfo.tm_min;
+    int of_H = 6 - timeinfo.tm_hour;
+    int of_M = 0 - timeinfo.tm_min;
+    OFFSET = (of_H * 60) + of_M;
   }
-  timeinfo.tm_hour += OFFSET_H;
-  timeinfo.tm_min += OFFSET_M;
-  M5.Lcd.println(&timeinfo, "\nCycleTIme : %H:%M:%S");
+  current += OFFSET;
+  char time[17] = {0};
+  M5.Lcd.setTextSize(5);
+  sprintf(time, "%02u:%02u:%02u", current / 60, abs(current % 60), timeinfo.tm_sec );
+
+  M5.Lcd.println(time);
 }
